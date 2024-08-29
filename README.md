@@ -1,6 +1,9 @@
 # subtitle ass shifter
 Shift Subtitle of [`.ass`, `.srt`] format
 
+> [!CAUTION]
+> It will replace your subtitle, **backup** before run.
+
 
 ## Usage
 ```
