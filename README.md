@@ -1,5 +1,5 @@
-# subtitle-ass-shifter
-Shift ASS format Subtitle
+# subtitle ass shifter
+Shift Subtitle of [`.ass`, `.srt`] format
 
 
 ## Usage
@@ -16,12 +16,12 @@ ass-shifter [path] -t [shift ms]
 
 ## Example
 ```bash
-go run main.go ../S05 -t -1002
-[SUCCESS] Shifted -1002ms -> Better.Call.Saul.S05E01.2020.1080p.BluRay.x265.10bit.ass
-[SUCCESS] Shifted -1002ms -> Better.Call.Saul.S05E02.2020.1080p.BluRay.x265.10bit.ass
-[SUCCESS] Shifted -1002ms -> Better.Call.Saul.S05E03.2020.1080p.BluRay.x265.10bit.ass
-[SUCCESS] Shifted -1002ms -> Better.Call.Saul.S05E04.2020.1080p.BluRay.x265.10bit.ass
-[SUCCESS] Shifted -1002ms -> Better.Call.Saul.S05E05.2020.1080p.BluRay.x265.10bit.ass
+ass-shifter ../BCS -t -1002
+[SUCCESS] Shifted -1002ms -> Better Call Saul - 1x01 - Uno.HDTV.KILLERS.en.srt
+[SUCCESS] Shifted -1002ms -> Better Call Saul - 1x02 - Mijo.HDTV.LOL.en.srt
+[SUCCESS] Shifted -1002ms -> Better Call Saul - 1x03 - Nacho.HDTV.x264-LOL.en.srt
+[SUCCESS] Shifted -1002ms -> Better Call Saul - 1x04 - Hero.HDTV.LOL.en.srt
+[SUCCESS] Shifted -1002ms -> Better Call Saul - 1x05 - Alpine Shepherd Boy.HDTV.x264-LOL.en.srt
 [SUCCESS] Shifted -1002ms -> Better.Call.Saul.S05E06.2020.1080p.BluRay.x265.10bit.ass
 [SUCCESS] Shifted -1002ms -> Better.Call.Saul.S05E07.2020.1080p.BluRay.x265.10bit.ass
 [SUCCESS] Shifted -1002ms -> Better.Call.Saul.S05E08.2020.1080p.BluRay.x265.10bit.ass
