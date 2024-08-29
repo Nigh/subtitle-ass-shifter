@@ -16,7 +16,7 @@ var (
 	shift     int32
 )
 
-var version = "0.0.0-dev"
+var version = "1.0.0"
 
 func init() {
 	flaggy.SetName("ass-shifter")
@@ -42,15 +42,15 @@ func main() {
 	filepath.Walk(inputPath, walker)
 }
 
-func assShift(realPath string, shift int32) {
-	assFile, err := os.ReadFile(realPath)
+func srtShift(realPath string, shift int32) {
+	srtFile, err := os.ReadFile(realPath)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	lines := strings.Split(string(assFile), "\n")
-	// 0:00:10.19
-	re := regexp.MustCompile(`(-?\d+):(\d\d):(\d\d)\.(\d\d)`)
+	lines := strings.Split(string(srtFile), "\n")
+	// 00:01:36,649
+	re := regexp.MustCompile(`(-?\d+):(\d\d):(\d\d)\,(\d{1,3})`)
 	newLines := make([]string, 0)
 	for _, v := range lines {
 		matches := re.FindAllStringSubmatch(v, -1)
@@ -60,6 +60,10 @@ func assShift(realPath string, shift int32) {
 			seconds, _ := strconv.Atoi(match[3])
 			milliseconds, _ := strconv.Atoi(match[4])
 
+			for i := 0; i < 3-len(match[4]); i++ {
+				milliseconds *= 10
+			}
+
 			sign := 1
 			if hours < 0 {
 				sign = -1
@@ -68,7 +72,66 @@ func assShift(realPath string, shift int32) {
 			seconds *= sign
 			milliseconds *= sign
 
-			totalMs := (hours*3600+minutes*60+seconds)*1000 + milliseconds*10
+			totalMs := (hours*3600+minutes*60+seconds)*1000 + milliseconds
+			totalMs += int(shift)
+
+			if totalMs < 0 {
+				sign = -1
+			} else {
+				sign = 1
+			}
+			totalMs *= sign
+
+			newTime := fmt.Sprintf("%02d:%02d:%02d,%03d",
+				totalMs/3600000*sign,
+				(totalMs/60000)%60,
+				(totalMs/1000)%60,
+				totalMs%1000)
+
+			v = strings.Replace(v, match[0], newTime, 1)
+		}
+		newLines = append(newLines, v)
+	}
+
+	err = os.WriteFile(realPath, []byte(strings.Join(newLines, "\n")), 0644)
+	if err != nil {
+		fmt.Println("[ERROR] "+filepath.Base(realPath), err)
+		return
+	}
+	fmt.Println("[SUCCESS] Shifted " + strconv.Itoa(int(shift)) + "ms -> " + filepath.Base(realPath))
+}
+
+func assShift(realPath string, shift int32) {
+	assFile, err := os.ReadFile(realPath)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	lines := strings.Split(string(assFile), "\n")
+	// 0:00:10.19
+	re := regexp.MustCompile(`(-?\d+):(\d\d):(\d\d)\.(\d{1,3})`)
+	newLines := make([]string, 0)
+	for _, v := range lines {
+		matches := re.FindAllStringSubmatch(v, -1)
+		for _, match := range matches {
+			hours, _ := strconv.Atoi(match[1])
+			minutes, _ := strconv.Atoi(match[2])
+			seconds, _ := strconv.Atoi(match[3])
+			milliseconds, _ := strconv.Atoi(match[4])
+
+			for i := 0; i < 3-len(match[4]); i++ {
+				milliseconds *= 10
+			}
+
+			sign := 1
+			if hours < 0 {
+				sign = -1
+			}
+			minutes *= sign
+			seconds *= sign
+			milliseconds *= sign
+
+			totalMs := (hours*3600+minutes*60+seconds)*1000 + milliseconds
 			totalMs += int(shift)
 
 			if totalMs < 0 {
@@ -89,8 +152,6 @@ func assShift(realPath string, shift int32) {
 		newLines = append(newLines, v)
 	}
 
-	// savePath := filepath.Dir(realPath) + "\\shifted_" + filepath.Base(realPath)
-	// fmt.Println(savePath)
 	err = os.WriteFile(realPath, []byte(strings.Join(newLines, "\n")), 0644)
 	if err != nil {
 		fmt.Println("[ERROR] "+filepath.Base(realPath), err)
@@ -104,10 +165,13 @@ func walker(realPath string, f os.FileInfo, err error) error {
 	if f.Name()[0] == '.' {
 		return filepath.SkipDir
 	}
-	if strings.ToLower(ext) != ".ass" {
+	switch strings.ToLower(ext) {
+	case ".srt":
+		srtShift(realPath, shift)
+	case ".ass":
+		assShift(realPath, shift)
+	default:
 		return nil
 	}
-	// fmt.Println(realPath)
-	assShift(realPath, shift)
 	return nil
 }
