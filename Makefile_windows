@@ -23,27 +23,27 @@ all: darwin linux win64
 
 .PHONY: darwin
 darwin: $(OSXBIN)
-	chmod +x $(OSXBIN)
+# chmod +x $(OSXBIN)
 
 .PHONY: $(OSXBIN)
 $(OSXBIN):
-	GOARCH=$(GOARCH) GOOS=$(GOOSX) $(CC) -o $(OSXBIN) -ldflags="$(LDFLAGS)"
+	set GOARCH=$(GOARCH)&set GOOS=$(GOOSX)&$(CC) -o $(OSXBIN) -ldflags="$(LDFLAGS)"
 
 .PHONY: linux
 linux: $(LINUXBIN)
-	chmod +x $(LINUXBIN)
+# chmod +x $(LINUXBIN)
 
 .PHONY: $(LINUXBIN)
 $(LINUXBIN):
-	GOARCH=$(GOARCH) GOOS=$(GOOSLINUX) $(CC) -o $(LINUXBIN) -ldflags="$(LDFLAGS)"
+	set GOARCH=$(GOARCH)&set GOOS=$(GOOSLINUX)&$(CC) -o $(LINUXBIN) -ldflags="$(LDFLAGS)"
 
 .PHONY: win64
 win64: $(WINBIN)
 
 .PHONY: $(WINBIN)
 $(WINBIN):
-	GOARCH=$(GOARCH) GOOS=$(GOOSWIN) $(CC) -o $(WINBIN) -ldflags="$(LDFLAGS)"
+	set GOARCH=$(GOARCH)&set GOOS=$(GOOSWIN)&$(CC) -o $(WINBIN) -ldflags="$(LDFLAGS)"
 
 .PHONY: clean
 clean:
-	rm ./$(DIR) -rf
+	del /f /q .\$(DIR)\*
