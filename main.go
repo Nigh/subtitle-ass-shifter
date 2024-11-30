@@ -12,8 +12,13 @@ import (
 )
 
 var (
-	inputPath string
-	shift     int32
+	inputPath   string
+	shift       int
+	from        int
+	to          int
+	fromStr     string
+	toStr       string
+	fileShifted int
 )
 
 var version = "1.0.0"
@@ -24,14 +29,80 @@ func init() {
 	flaggy.DefaultParser.ShowHelpOnUnexpected = true
 	flaggy.DefaultParser.AdditionalHelpPrepend = "https://github.com/Nigh/subtitle-ass-shifter"
 	flaggy.AddPositionalValue(&inputPath, "path", 1, true, "the subtitle path to shift")
-	flaggy.Int32(&shift, "t", "shift", "shift ms")
+	flaggy.Int(&shift, "t", "shift", "shift ms")
+	flaggy.String(&fromStr, "s", "start", "start from HH:MM:SS")
+	flaggy.String(&toStr, "e", "end", "end at HH:MM:SS")
 	flaggy.SetVersion(version)
 	flaggy.Parse()
 }
+
+func parseFromTo() error {
+	re := regexp.MustCompile(`(-?\d+):(\d\d):(\d\d)`)
+
+	if fromStr != "" {
+		matches := re.FindStringSubmatch(fromStr)
+		if matches == nil {
+			return fmt.Errorf("invalid start time format, expected HH:MM:SS, example: 0:23:45")
+		}
+
+		hours, _ := strconv.Atoi(matches[1])
+		minutes, _ := strconv.Atoi(matches[2])
+		seconds, _ := strconv.Atoi(matches[3])
+
+		sign := 1
+		if hours < 0 {
+			sign = -1
+		}
+		from = (hours*3600 + minutes*60 + seconds) * 1000 * sign
+	}
+
+	if toStr != "" {
+		matches := re.FindStringSubmatch(toStr)
+
+		if matches == nil {
+			return fmt.Errorf("invalid end time format, expected HH:MM:SS, example: 1:32:54")
+		}
+		hours, _ := strconv.Atoi(matches[1])
+		minutes, _ := strconv.Atoi(matches[2])
+		seconds, _ := strconv.Atoi(matches[3])
+
+		sign := 1
+		if hours < 0 {
+			sign = -1
+		}
+		to = (hours*3600 + minutes*60 + seconds) * 1000 * sign
+	}
+
+	return nil
+}
+
+func timeInclude(t int) bool {
+	if from == 0 && to == 0 {
+		return true
+	}
+	if from != 0 && t < from {
+		return false
+	}
+	if to != 0 && t > to {
+		return false
+	}
+	return true
+}
+
 func main() {
 	if shift == 0 {
-		fmt.Println("0ms shift means nothing to do.")
+		fmt.Println("shift 0ms means nothing to do.")
 		return
+	}
+	if err := parseFromTo(); err != nil {
+		fmt.Println(err)
+		return
+	}
+	if to != 0 && from != 0 {
+		if from > to {
+			fmt.Println("end must be greater than start")
+			return
+		}
 	}
 	inputPath, _ = filepath.Abs(inputPath)
 	_, err := os.Stat(inputPath)
@@ -40,9 +111,26 @@ func main() {
 		return
 	}
 	filepath.Walk(inputPath, walker)
+
+	if fileShifted > 0 {
+		fmt.Print("Total " + strconv.Itoa(fileShifted) + " files shifted " + strconv.Itoa(shift) + "ms ")
+		if from != 0 || to != 0 {
+			if from != 0 {
+				fmt.Print("from " + fromStr)
+			} else {
+				fmt.Print("from start")
+			}
+			if to != 0 {
+				fmt.Print(" to " + toStr)
+			} else {
+				fmt.Print(" to end")
+			}
+		}
+		fmt.Println()
+	}
 }
 
-func srtShift(realPath string, shift int32) {
+func srtShift(realPath string) {
 	srtFile, err := os.ReadFile(realPath)
 	if err != nil {
 		fmt.Println(err)
@@ -73,7 +161,10 @@ func srtShift(realPath string, shift int32) {
 			milliseconds *= sign
 
 			totalMs := (hours*3600+minutes*60+seconds)*1000 + milliseconds
-			totalMs += int(shift)
+			if !timeInclude(totalMs) {
+				continue
+			}
+			totalMs += shift
 
 			if totalMs < 0 {
 				sign = -1
@@ -98,10 +189,11 @@ func srtShift(realPath string, shift int32) {
 		fmt.Println("[ERROR] "+filepath.Base(realPath), err)
 		return
 	}
-	fmt.Println("[SUCCESS] Shifted " + strconv.Itoa(int(shift)) + "ms -> " + filepath.Base(realPath))
+	fmt.Println("[SUCCESS] " + filepath.Base(realPath))
+	fileShifted++
 }
 
-func assShift(realPath string, shift int32) {
+func assShift(realPath string) {
 	assFile, err := os.ReadFile(realPath)
 	if err != nil {
 		fmt.Println(err)
@@ -132,7 +224,10 @@ func assShift(realPath string, shift int32) {
 			milliseconds *= sign
 
 			totalMs := (hours*3600+minutes*60+seconds)*1000 + milliseconds
-			totalMs += int(shift)
+			if !timeInclude(totalMs) {
+				continue
+			}
+			totalMs += shift
 
 			if totalMs < 0 {
 				sign = -1
@@ -157,7 +252,8 @@ func assShift(realPath string, shift int32) {
 		fmt.Println("[ERROR] "+filepath.Base(realPath), err)
 		return
 	}
-	fmt.Println("[SUCCESS] Shifted " + strconv.Itoa(int(shift)) + "ms -> " + filepath.Base(realPath))
+	fmt.Println("[SUCCESS] " + filepath.Base(realPath))
+	fileShifted++
 }
 
 func walker(realPath string, f os.FileInfo, err error) error {
@@ -167,9 +263,9 @@ func walker(realPath string, f os.FileInfo, err error) error {
 	}
 	switch strings.ToLower(ext) {
 	case ".srt":
-		srtShift(realPath, shift)
+		srtShift(realPath)
 	case ".ass":
-		assShift(realPath, shift)
+		assShift(realPath)
 	default:
 		return nil
 	}
