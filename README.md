@@ -57,6 +57,7 @@ From 0:06:13.00 to end, 1629 lines shifted 3200ms
 [Info] 13 subtitle files updated.
 ```
 
+Dry run would NOT change your file. Good for test.
 ```bash
 ass-shifter ../Better.Call.Saul/S06 -sr "第.季\s*第.+集" -t 3234 --dry
 
