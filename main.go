@@ -19,16 +19,15 @@ var supportTypes map[string]subtitle = map[string]subtitle{
 }
 
 var (
-	inputPath   string
-	shift       int
-	from        int
-	to          int
-	fromStr     string
-	toStr       string
-	fromRegexp  string
-	toRegexp    string
-	fileShifted int
-	dry         bool
+	inputPath  string
+	shift      int
+	gFrom      int
+	gTo        int
+	fromStr    string
+	toStr      string
+	fromRegexp string
+	toRegexp   string
+	dry        bool
 )
 
 var version = "1.0.0"
@@ -83,7 +82,7 @@ func parseFromTo() error {
 		if err != nil {
 			return err
 		} else {
-			from = ms
+			gFrom = ms
 		}
 	}
 
@@ -92,7 +91,13 @@ func parseFromTo() error {
 		if err != nil {
 			return err
 		} else {
-			to = ms
+			gTo = ms
+		}
+	}
+
+	if gTo != 0 && gFrom != 0 {
+		if gFrom > gTo {
+			return fmt.Errorf("end must be greater than start")
 		}
 	}
 
@@ -115,7 +120,7 @@ func parseFromTo() error {
 	return nil
 }
 
-func timeInclude(t int) bool {
+func timeInclude(t int, from int, to int) bool {
 	if from == 0 && to == 0 {
 		return true
 	}
@@ -128,6 +133,8 @@ func timeInclude(t int) bool {
 	return true
 }
 
+var fileUpdated = 0
+
 func main() {
 	if shift == 0 {
 		fmt.Println("shift 0ms means nothing to do.")
@@ -137,12 +144,7 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-	if to != 0 && from != 0 {
-		if from > to {
-			fmt.Println("end must be greater than start")
-			return
-		}
-	}
+
 	inputPath, _ = filepath.Abs(inputPath)
 	_, err := os.Stat(inputPath)
 	if err != nil {
@@ -151,21 +153,10 @@ func main() {
 	}
 	filepath.Walk(inputPath, walker)
 
-	if fileShifted > 0 {
-		fmt.Print("Total " + strconv.Itoa(fileShifted) + " files shifted " + strconv.Itoa(shift) + "ms ")
-		if from != 0 || to != 0 {
-			if from != 0 {
-				fmt.Print("from " + fromStr)
-			} else {
-				fmt.Print("from start")
-			}
-			if to != 0 {
-				fmt.Print(" to " + toStr)
-			} else {
-				fmt.Print(" to end")
-			}
-		}
-		fmt.Println()
+	if dry {
+		fmt.Println("\n[Info] Dry run, no file changes.")
+	} else {
+		fmt.Printf("\n[Info] %d subtitle files updated.\n", fileUpdated)
 	}
 }
 
@@ -201,6 +192,8 @@ func walker(realPath string, f os.FileInfo, err error) error {
 			err = os.WriteFile(realPath, []byte(strings.Join(newLines, "\n")), 0644)
 			if err != nil {
 				fmt.Println("[ERROR] "+filepath.Base(realPath), err)
+			} else {
+				fileUpdated++
 			}
 		}
 	}
@@ -330,17 +323,19 @@ func subtitleShift(s subtitle, shift int) (newLines []string) {
 	if toRegexp != "" {
 		reTo = regexp.MustCompile(toRegexp)
 	}
+	from := gFrom
+	to := gTo
 	if fromRegexp != "" || toRegexp != "" {
 		for _, v := range lines {
 			matches := s.re().FindAllStringSubmatch(v, 2)
 			if matches != nil {
 				ms := s.match2Ms(matches[1])
-				if fromRegexp != "" && from != 0 {
+				if fromRegexp != "" && from == 0 {
 					if reFrom.MatchString(v) {
 						from = ms
 					}
 				}
-				if toRegexp != "" && to != 0 {
+				if toRegexp != "" && to == 0 {
 					if reTo.MatchString(v) {
 						to = ms
 					}
@@ -354,7 +349,7 @@ func subtitleShift(s subtitle, shift int) (newLines []string) {
 		matches := s.re().FindAllStringSubmatch(v, 2)
 		for _, match := range matches {
 			totalMs := s.match2Ms(match)
-			if !timeInclude(totalMs) {
+			if !timeInclude(totalMs, from, to) {
 				continue
 			}
 			totalMs += shift
