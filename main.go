@@ -347,7 +347,10 @@ func subtitleShift(s subtitle, shift int) (newLines []string) {
 	linesShifted := 0
 	for _, v := range lines {
 		matches := s.re().FindAllStringSubmatch(v, 2)
-		for _, match := range matches {
+		// Process matches in reverse order to avoid issues when the first timestamp
+		// after offset becomes equal to the original second timestamp
+		for i := len(matches) - 1; i >= 0; i-- {
+			match := matches[i]
 			totalMs := s.match2Ms(match)
 			if !timeInclude(totalMs, from, to) {
 				continue
