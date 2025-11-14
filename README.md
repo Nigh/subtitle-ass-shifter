@@ -1,5 +1,5 @@
 
-![logo](https://github.com/user-attachments/assets/b4f69c9c-02af-4830-bcd1-20c4589a858c)
+<img width="256" height="256" alt="logo" src="https://github.com/user-attachments/assets/33a2d3e9-8f06-408d-b721-4da16b1f0d66" />
 
 # subtitle ass shifter
 Shift Subtitle of [`.ass`, `.srt`] format
