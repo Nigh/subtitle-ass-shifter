@@ -1,5 +1,5 @@
 
-VERSION?=v1.2.0
+VERSION?=v1.2.1
 
 DIR 		= dist
 EXECUTABLE 	= ass-shifter
