@@ -8,6 +8,8 @@ Shift Subtitle of [`.ass`, `.srt`] format
 > It will replace your subtitle, **backup** your subtitle files before run. Use `--dry` for test.  
 > From version `v1.2.0`, the program will automatically convert subtitle files to UTF8 encoding.
 
+`--dry` will still scan files, match the target range, and print what would be shifted, but it will **not write any changes back to disk**.
+
 
 ## Usage
 ```
@@ -28,7 +30,7 @@ ass-shifter [path] -t [shift ms]
 
 The `--start` and `--end` parameters can be used to qualify the time range of the subtitle offset.   
 The `--startRegexp` and `--endRegexp` parameters can be used to match the content of the subtitle with a regular expression as the start and end of the offset time range.  
-The time and regular expression parameters can be used together.
+`--start` and `--startRegexp` cannot be used together. `--end` and `--endRegexp` cannot be used together. However, the start condition and end condition can still be combined freely, for example `--start` with `--endRegexp`, or `--startRegexp` with `--end`.
 
 ## Example
 The `start` and `end` parameters are optional. They can also be used together.
@@ -44,18 +46,18 @@ The program prints the result of the execution like the following.
 ```bash
 ass-shifter ../Better.Call.Saul/S06 -t -3200 -s 0:06:13
 Better.Call.Saul.S06E01.2022.1080p.WEB-DL.x265.10bit.ass
-From 0:06:13.00 to end, 1152 lines shifted 3200ms
+From 0:06:13.00 to end, 1152 lines shifted -3200ms
 
 Better.Call.Saul.S06E02.2022.1080p.WEB-DL.x265.10bit.ass
-From 0:06:13.00 to end, 1222 lines shifted 3200ms
+From 0:06:13.00 to end, 1222 lines shifted -3200ms
 
 ...
 
 Better.Call.Saul.S06E12.2022.1080p.WEB-DL.x265.10bit.ass
-From 0:06:13.00 to end, 1035 lines shifted 3200ms
+From 0:06:13.00 to end, 1035 lines shifted -3200ms
 
 Better.Call.Saul.S06E13.2022.1080p.WEB-DL.x265.10bit.ass
-From 0:06:13.00 to end, 1629 lines shifted 3200ms
+From 0:06:13.00 to end, 1629 lines shifted -3200ms
 
 [Info] 13 subtitle files updated.
 ```
