@@ -314,6 +314,7 @@ func (s assType) time2Str(totalMs int) string {
 func subtitleShift(s subtitle, shift int) (newLines []string) {
 	lines := strings.Split(string(s.getContent()), "\n")
 	newLines = make([]string, 0)
+	timeRe := s.re()
 
 	// if regexp is not empty, then use regexp to match time
 	var reFrom, reTo *regexp.Regexp
@@ -327,7 +328,7 @@ func subtitleShift(s subtitle, shift int) (newLines []string) {
 	to := gTo
 	if fromRegexp != "" || toRegexp != "" {
 		for _, v := range lines {
-			matches := s.re().FindAllStringSubmatch(v, 2)
+			matches := timeRe.FindAllStringSubmatch(v, 2)
 			if matches != nil {
 				ms := s.match2Ms(matches[1])
 				if fromRegexp != "" && from == 0 {
@@ -346,21 +347,36 @@ func subtitleShift(s subtitle, shift int) (newLines []string) {
 
 	linesShifted := 0
 	for _, v := range lines {
-		matches := s.re().FindAllStringSubmatch(v, 2)
-		// Process matches in reverse order to avoid issues when the first timestamp
-		// after offset becomes equal to the original second timestamp
-		for i := len(matches) - 1; i >= 0; i-- {
-			match := matches[i]
-			totalMs := s.match2Ms(match)
-			if !timeInclude(totalMs, from, to) {
+		matches := timeRe.FindAllStringSubmatchIndex(v, -1)
+		if len(matches) == 0 {
+			newLines = append(newLines, v)
+			continue
+		}
+
+		var builder strings.Builder
+		lastPos := 0
+		for _, matchIdx := range matches {
+			start, end := matchIdx[0], matchIdx[1]
+			builder.WriteString(v[lastPos:start])
+
+			match := timeRe.FindStringSubmatch(v[start:end])
+			if match == nil {
+				builder.WriteString(v[start:end])
+				lastPos = end
 				continue
 			}
-			totalMs += shift
-			newTime := s.time2Str(totalMs)
-			v = strings.Replace(v, match[0], newTime, 1)
-			linesShifted++
+
+			totalMs := s.match2Ms(match)
+			if timeInclude(totalMs, from, to) {
+				builder.WriteString(s.time2Str(totalMs + shift))
+				linesShifted++
+			} else {
+				builder.WriteString(v[start:end])
+			}
+			lastPos = end
 		}
-		newLines = append(newLines, v)
+		builder.WriteString(v[lastPos:])
+		newLines = append(newLines, builder.String())
 	}
 	var _from string
 	var _to string
