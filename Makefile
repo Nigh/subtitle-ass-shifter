@@ -9,7 +9,9 @@ GOOSX		= darwin
 GOOSLINUX	= linux
 
 WINBIN 		= $(DIR)/$(EXECUTABLE)-win-$(GOARCH).exe
-OSXBIN 		= $(DIR)/$(EXECUTABLE)-darwin-$(GOARCH)
+OSXBIN 		= $(DIR)/$(EXECUTABLE)-darwin-universal
+OSXAMD64	= $(DIR)/.$(EXECUTABLE)-darwin-amd64
+OSXARM64	= $(DIR)/.$(EXECUTABLE)-darwin-arm64
 LINUXBIN 	= $(DIR)/$(EXECUTABLE)-linux-$(GOARCH)
 
 CC 			= go build
@@ -23,11 +25,19 @@ all: darwin linux win64
 
 .PHONY: darwin
 darwin: $(OSXBIN)
-	chmod +x $(OSXBIN)
 
-.PHONY: $(OSXBIN)
-$(OSXBIN):
-	GOARCH=$(GOARCH) GOOS=$(GOOSX) $(CC) -o $(OSXBIN) -ldflags="$(LDFLAGS)"
+$(OSXAMD64):
+	@mkdir -p $(DIR)
+	GOARCH=amd64 GOOS=$(GOOSX) $(CC) -o $(OSXAMD64) -ldflags="$(LDFLAGS)"
+
+$(OSXARM64):
+	@mkdir -p $(DIR)
+	GOARCH=arm64 GOOS=$(GOOSX) $(CC) -o $(OSXARM64) -ldflags="$(LDFLAGS)"
+
+$(OSXBIN): $(OSXAMD64) $(OSXARM64)
+	lipo -create -output $(OSXBIN) $(OSXAMD64) $(OSXARM64)
+	rm -f $(OSXAMD64) $(OSXARM64)
+	chmod +x $(OSXBIN)
 
 .PHONY: linux
 linux: $(LINUXBIN)
