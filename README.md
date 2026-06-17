@@ -25,8 +25,11 @@ ass-shifter [path] -t [shift ms]
     -e --end           end at HH:MM:SS
     -sr --startRegexp  start from regular expression
     -er --endRegexp    end at regular expression
+    -enc --encoding    force input encoding (e.g. gbk, shift_jis); skips auto-detection
     -d --dry           dry run
 ```
+
+Use `--encoding` when auto-detection picks the wrong charset (common with GBK/Shift_JIS subtitles misread as Latin-1).
 
 The `--start` and `--end` parameters can be used to qualify the time range of the subtitle offset.   
 The `--startRegexp` and `--endRegexp` parameters can be used to match the content of the subtitle with a regular expression as the start and end of the offset time range.  
