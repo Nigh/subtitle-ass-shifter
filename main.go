@@ -10,6 +10,7 @@ import (
 
 	"github.com/integrii/flaggy"
 	"golang.org/x/net/html/charset"
+	"golang.org/x/text/encoding"
 	"golang.org/x/text/transform"
 )
 
@@ -27,6 +28,7 @@ var (
 	toStr      string
 	fromRegexp string
 	toRegexp   string
+	encOverr   string
 	dry        bool
 )
 
@@ -43,6 +45,7 @@ func init() {
 	flaggy.String(&toStr, "e", "end", "end at HH:MM:SS")
 	flaggy.String(&fromRegexp, "sr", "startRegexp", "start from regular expression")
 	flaggy.String(&toRegexp, "er", "endRegexp", "end at regular expression")
+	flaggy.String(&encOverr, "enc", "encoding", "override encoding detection")
 	flaggy.Bool(&dry, "d", "dry", "dry run")
 	flaggy.SetVersion(version)
 	flaggy.Parse()
@@ -175,12 +178,24 @@ func walker(realPath string, f os.FileInfo, err error) error {
 			return nil
 		}
 		// Detect the encoding
-		encoding, name, certain := charset.DetermineEncoding(subFile, "")
+		var fileEncoding encoding.Encoding
+		var name string
+		var certain bool
+		if encOverr != "" {
+			fileEncoding, name = charset.Lookup(encOverr)
+			if fileEncoding == nil {
+				fmt.Printf("Encoding %s is not recognized\n", encOverr)
+				return nil
+			}
+			certain = true
+		} else {
+			fileEncoding, name, certain = charset.DetermineEncoding(subFile, "")
+		}
 		if !certain {
 			fmt.Printf("Warning: uncertain encoding detected for %s, assuming %s\n", realPath, name)
 		}
 		// Transcode to UTF-8
-		utf8Bytes, _, err := transform.Bytes(encoding.NewDecoder(), subFile)
+		utf8Bytes, _, err := transform.Bytes(fileEncoding.NewDecoder(), subFile)
 		if err != nil {
 			fmt.Println(err)
 			return nil
