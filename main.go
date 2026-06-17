@@ -10,6 +10,7 @@ import (
 
 	"github.com/integrii/flaggy"
 	"golang.org/x/net/html/charset"
+	"golang.org/x/text/encoding"
 	"golang.org/x/text/transform"
 )
 
@@ -19,20 +20,27 @@ var supportTypes map[string]subtitle = map[string]subtitle{
 }
 
 var (
-	inputPath  string
-	shift      int
-	gFrom      int
-	gTo        int
-	fromStr    string
-	toStr      string
-	fromRegexp string
-	toRegexp   string
-	dry        bool
+	inputPath     string
+	shift         int
+	gFrom         int
+	gTo           int
+	fromStr       string
+	toStr         string
+	fromRegexp    string
+	toRegexp      string
+	encOverr      string
+	inputEncoding encoding.Encoding
+	inputEncName  string
+	dry           bool
 )
 
 var version = "1.0.0"
 
 func init() {
+	// ponytail: skip CLI parse under go test; upgrade path is TestMain + extracted cmd package
+	if strings.HasSuffix(os.Args[0], ".test") {
+		return
+	}
 	flaggy.SetName("ass-shifter")
 	flaggy.SetDescription("ASS subtitle shifter")
 	flaggy.DefaultParser.ShowHelpOnUnexpected = true
@@ -43,6 +51,7 @@ func init() {
 	flaggy.String(&toStr, "e", "end", "end at HH:MM:SS")
 	flaggy.String(&fromRegexp, "sr", "startRegexp", "start from regular expression")
 	flaggy.String(&toRegexp, "er", "endRegexp", "end at regular expression")
+	flaggy.String(&encOverr, "enc", "encoding", "force input encoding (e.g. gbk, shift_jis); skips auto-detection")
 	flaggy.Bool(&dry, "d", "dry", "dry run")
 	flaggy.SetVersion(version)
 	flaggy.Parse()
@@ -151,6 +160,13 @@ func main() {
 		fmt.Println(err)
 		return
 	}
+	if err := initInputEncoding(encOverr); err != nil {
+		fmt.Println(err)
+		return
+	}
+	if inputEncoding != nil {
+		fmt.Printf("Using encoding %s (override)\n", inputEncName)
+	}
 	filepath.Walk(inputPath, walker)
 
 	if dry {
@@ -158,6 +174,21 @@ func main() {
 	} else {
 		fmt.Printf("\n[Info] %d subtitle files updated.\n", fileUpdated)
 	}
+}
+
+func initInputEncoding(label string) error {
+	if label == "" {
+		inputEncoding = nil
+		inputEncName = ""
+		return nil
+	}
+	e, name := charset.Lookup(label)
+	if e == nil {
+		return fmt.Errorf("Encoding %s is not recognized", label)
+	}
+	inputEncoding = e
+	inputEncName = name
+	return nil
 }
 
 func walker(realPath string, f os.FileInfo, err error) error {
@@ -175,12 +206,21 @@ func walker(realPath string, f os.FileInfo, err error) error {
 			return nil
 		}
 		// Detect the encoding
-		encoding, name, certain := charset.DetermineEncoding(subFile, "")
+		var fileEncoding encoding.Encoding
+		var name string
+		var certain bool
+		if inputEncoding != nil {
+			fileEncoding = inputEncoding
+			name = inputEncName
+			certain = true
+		} else {
+			fileEncoding, name, certain = charset.DetermineEncoding(subFile, "")
+		}
 		if !certain {
 			fmt.Printf("Warning: uncertain encoding detected for %s, assuming %s\n", realPath, name)
 		}
 		// Transcode to UTF-8
-		utf8Bytes, _, err := transform.Bytes(encoding.NewDecoder(), subFile)
+		utf8Bytes, _, err := transform.Bytes(fileEncoding.NewDecoder(), subFile)
 		if err != nil {
 			fmt.Println(err)
 			return nil
