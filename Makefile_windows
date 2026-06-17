@@ -19,7 +19,8 @@ LDFLAGS		= all=-w -s -X main.version=$(VERSION)
 
 default: all
 
-all: darwin linux win64
+# ponytail: darwin-universal needs lipo (macOS); use Makefile on Mac for `make darwin`
+all: linux win64
 
 .PHONY: darwin
 darwin: $(OSXBIN)
