@@ -1,5 +1,6 @@
-
-<img width="256" height="256" alt="logo" src="https://github.com/user-attachments/assets/33a2d3e9-8f06-408d-b721-4da16b1f0d66" />
+<p align="center">
+<img width="256" height="256" alt="logo" src="https://github.com/user-attachments/assets/2ce4fa75-3c36-4f20-b6e2-910a88d14e2b" />
+</p>
 
 # subtitle ass shifter
 Shift Subtitle of [`.ass`, `.srt`] format
@@ -12,6 +13,7 @@ Shift Subtitle of [`.ass`, `.srt`] format
 
 
 ## Usage
+
 ```
 ass-shifter [path] -t [shift ms]
 
